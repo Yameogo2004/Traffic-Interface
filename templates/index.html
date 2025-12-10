@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Trafic</title>
+
+    <!-- Bibliothèques externes -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- CSS personnalisé thème trafic routier -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- Police Google pour meilleure typographie -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Segoe+UI:wght@400;600&display=swap" rel="stylesheet">
+
+    <!-- Icônes Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Icônes de véhicules animés en arrière-plan -->
+    <div class="vehicle-animation-container">
+        <div class="vehicle-icon">🚗</div>
+        <div class="vehicle-icon" style="animation-delay: 2s">🚙</div>
+        <div class="vehicle-icon" style="animation-delay: 4s">🚌</div>
+        <div class="vehicle-icon" style="animation-delay: 6s">🚚</div>
+        <div class="vehicle-icon" style="animation-delay: 8s">🚕</div>
+        <div class="vehicle-icon" style="animation-delay: 10s">🚛</div>
+    </div>
+
+    <div class="container-fluid py-4">
+        <!-- Header principal -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="dashboard-header">
+                    <h1><i class="fas fa-traffic-light me-3"></i>Dashboard Analyse et Prédiction de Trafic Routier</h1>
+                    <p class="lead">
+                        Analyse complète des données de trafic avec prédictions CNN-LSTM et simulations 24h
+                        <span class="d-block mt-2"><i class="fas fa-car me-2"></i>Intelligence Artificielle pour une mobilité optimisée</span>
+                    </p>
+
+                    <div class="row mt-4">
+                        <div class="col-md-4">
+                            <div class="info-panel">
+                                <i class="fas fa-database me-2"></i>
+                                <strong>Source:</strong> {{ stats.source }}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-panel success">
+                                <i class="fas fa-chart-bar me-2"></i>
+                                <strong>Enregistrements:</strong> {{ stats.total_records }}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-panel warning">
+                                <i class="fas fa-calendar-alt me-2"></i>
+                                <strong>Période:</strong> {{ stats.date_range }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="refresh-time">
+                        <i class="fas fa-sync-alt me-2"></i>Dernière mise à jour: {{ now }}
+                        <span class="ms-3">
+                            <i class="fas fa-server me-1"></i>Modèle: CNN-LSTM
+                            <i class="fas fa-robot ms-3 me-1"></i>IA: TensorFlow
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ligne de séparation routière -->
+        <div class="road-divider"></div>
+
+        <!-- Navigation par onglets -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="navigation-container">
+                    <ul class="nav nav-tabs" id="dashboardTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="stats-tab" data-bs-toggle="tab" data-bs-target="#stats" type="button">
+                                <i class="fas fa-chart-pie me-2"></i>📊 Statistiques
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="eda-tab" data-bs-toggle="tab" data-bs-target="#eda" type="button">
+                                <i class="fas fa-chart-line me-2"></i>📈 Analyse Exploratoire
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="simulation-tab" data-bs-toggle="tab" data-bs-target="#simulation" type="button">
+                                <i class="fas fa-crystal-ball me-2"></i>🔮 Simulation 24h
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="predictions-tab" data-bs-toggle="tab" data-bs-target="#predictions" type="button">
+                                <i class="fas fa-brain me-2"></i>🤖 Prédictions IA
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="data-tab" data-bs-toggle="tab" data-bs-target="#data" type="button">
+                                <i class="fas fa-table me-2"></i>📋 Données Brutes
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenu des onglets -->
+        <div class="tab-content" id="dashboardTabsContent">
+
+            <!-- Onglet Statistiques -->
+            <div class="tab-pane fade show active" id="stats" role="tabpanel">
+                <div class="row mb-4">
+                    <!-- KPIs Principaux -->
+                    <div class="col-md-3">
+                        <div class="card kpi-card pulse">
+                            <div class="card-body text-center">
+                                <i class="fas fa-car-alt fa-3x mb-3"></i>
+                                <div class="metric-value">{{ stats.avg_traffic }}</div>
+                                <div class="metric-label">Trafic Moyen (véhicules/h)</div>
+                                <div class="kpi-trend mt-2">
+                                    <i class="fas fa-arrow-up text-success"></i> Moyenne journalière
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="card stat-card">
+                            <div class="card-body text-center">
+                                <i class="fas fa-tachometer-alt fa-3x mb-3"></i>
+                                <div class="metric-value">{{ stats.avg_speed if stats.avg_speed else 'N/A' }}</div>
+                                <div class="metric-label">Vitesse Moyenne (km/h)</div>
+                                <div class="speedometer-container mt-2">
+                                    <div class="speedometer" data-speed="{{ stats.avg_speed if stats.avg_speed else 0 }}"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <i class="fas fa-thermometer-half fa-3x mb-3"></i>
+                                <div class="metric-value">{{ stats.avg_temp if stats.avg_temp else 'N/A' }}</div>
+                                <div class="metric-label">Température Moyenne</div>
+                                <div class="weather-indicator mt-2">
+                                    <i class="fas fa-sun"></i> Conditions optimales
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-dark">
+                            <div class="card-body text-center">
+                                <i class="fas fa-clock fa-3x mb-3"></i>
+                                <div class="metric-value">{{ kpis.peak_hour if kpis.peak_hour else 'N/A' }}</div>
+                                <div class="metric-label">Heure de Pointe</div>
+                                <div class="peak-indicator mt-2">
+                                    <i class="fas fa-exclamation-triangle"></i> Traffic élevé
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Graphiques Matplotlib -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-chart-area me-2"></i>📊 Visualisations Statistiques (Matplotlib)
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    {% if matplotlib_graphs.dist_traffic %}
+                                    <div class="col-md-6 mb-4">
+                                        <div class="graph-container">
+                                            <div class="graph-title">
+                                                <i class="fas fa-chart-bar me-2"></i>Distribution du Trafic
+                                            </div>
+                                            <img src="data:image/png;base64,{{ matplotlib_graphs.dist_traffic }}" class="img-fluid" alt="Distribution du Trafic">
+                                        </div>
+                                    </div>
+                                    {% endif %}
+
+                                    {% if matplotlib_graphs.dist_speed %}
+                                    <div class="col-md-6 mb-4">
+                                        <div class="graph-container">
+                                            <div class="graph-title">
+                                                <i class="fas fa-tachometer-alt me-2"></i>Distribution de la Vitesse
+                                            </div>
+                                            <img src="data:image/png;base64,{{ matplotlib_graphs.dist_speed }}" class="img-fluid" alt="Distribution de la Vitesse">
+                                        </div>
+                                    </div>
+                                    {% endif %}
+
+                                    {% if matplotlib_graphs.correlation_heatmap %}
+                                    <div class="col-md-12 mb-4">
+                                        <div class="graph-container">
+                                            <div class="graph-title">
+                                                <i class="fas fa-project-diagram me-2"></i>Matrice de Corrélation
+                                            </div>
+                                            <img src="data:image/png;base64,{{ matplotlib_graphs.correlation_heatmap }}" class="img-fluid" alt="Matrice de Corrélation">
+                                        </div>
+                                    </div>
+                                    {% endif %}
+
+                                    <div class="col-md-6">
+                                        {% if matplotlib_graphs.weather_distribution %}
+                                        <div class="graph-container">
+                                            <div class="graph-title">
+                                                <i class="fas fa-cloud me-2"></i>Distribution Météo
+                                            </div>
+                                            <img src="data:image/png;base64,{{ matplotlib_graphs.weather_distribution }}" class="img-fluid" alt="Distribution Météo">
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        {% if matplotlib_graphs.temp_vs_traffic %}
+                                        <div class="graph-container">
+                                            <div class="graph-title">
+                                                <i class="fas fa-thermometer me-2"></i>Température vs Trafic
+                                            </div>
+                                            <img src="data:image/png;base64,{{ matplotlib_graphs.temp_vs_traffic }}" class="img-fluid" alt="Température vs Trafic">
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistiques Détails -->
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <i class="fas fa-chart-line me-2"></i>📈 Métriques de Trafic
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-striped table-hover">
+                                    <tbody>
+                                        <tr>
+                                            <td><i class="fas fa-car-crash text-danger me-2"></i>Trafic Minimum</td>
+                                            <td><strong class="text-primary">{{ stats.min_traffic }}</strong> véhicules/h</td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-traffic-light text-warning me-2"></i>Trafic Maximum</td>
+                                            <td><strong class="text-primary">{{ stats.max_traffic }}</strong> véhicules/h</td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-exchange-alt text-info me-2"></i>Variation Heure de Pointe</td>
+                                            <td><strong class="text-primary">{{ kpis.hourly_variation if kpis.hourly_variation else 'N/A' }}</strong> véhicules/h</td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-calendar-day text-success me-2"></i>Jour le Plus Chargé</td>
+                                            <td><strong class="text-primary">{{ kpis.busiest_day if kpis.busiest_day else 'N/A' }}</strong></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-success text-white">
+                                <i class="fas fa-clock me-2"></i>⏰ KPIs Temporels
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-striped table-hover">
+                                    <tbody>
+                                        <tr>
+                                            <td><i class="fas fa-hourglass-end text-warning me-2"></i>Heure de Pointe</td>
+                                            <td><strong class="traffic-status traffic-sature">{{ kpis.peak_hour if kpis.peak_hour else 'N/A' }}</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-hourglass-start text-success me-2"></i>Heure la Plus Calme</td>
+                                            <td><strong class="traffic-status traffic-fluide">{{ kpis.lowest_hour if kpis.lowest_hour else 'N/A' }}</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-calendar-week text-info me-2"></i>Trafic Semaine</td>
+                                            <td><strong class="text-primary">{{ kpis.weekday_traffic if kpis.weekday_traffic else 'N/A' }}</strong> véhicules/h</td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-umbrella-beach text-warning me-2"></i>Trafic Week-end</td>
+                                            <td><strong class="text-primary">{{ kpis.weekend_traffic if kpis.weekend_traffic else 'N/A' }}</strong> véhicules/h</td>
+                                        </tr>
+                                        {% if kpis.weekend_ratio %}
+                                        <tr>
+                                            <td><i class="fas fa-percentage text-danger me-2"></i>Ratio Week-end/Semaine</td>
+                                            <td><strong class="text-danger">{{ kpis.weekend_ratio }}</strong></td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Onglet Analyse Exploratoire -->
+            <div class="tab-pane fade" id="eda" role="tabpanel">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-custom">
+                            <h5><i class="fas fa-binoculars me-2"></i>📊 Analyse Exploratoire des Données</h5>
+                            <p>Visualisations interactives des patterns de trafic, météo et comportements temporels. Explorez les relations entre les variables.</p>
+                            <div class="row mt-3">
+                                <div class="col-md-4">
+                                    <span class="info-badge"><i class="fas fa-car me-1"></i> Trafic: {{ stats.avg_traffic }} véh/h</span>
+                                </div>
+                                <div class="col-md-4">
+                                    <span class="info-badge"><i class="fas fa-tachometer-alt me-1"></i> Vitesse: {{ stats.avg_speed if stats.avg_speed else 'N/A' }} km/h</span>
+                                </div>
+                                <div class="col-md-4">
+                                    <span class="info-badge"><i class="fas fa-thermometer-half me-1"></i> Temp: {{ stats.avg_temp if stats.avg_temp else 'N/A' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Graphiques Plotly -->
+                <div class="row">
+                    {% for graph_name, graph_json in eda_graphs.items() %}
+                    <div class="col-md-6 mb-4">
+                        <div class="graph-container">
+                            <div class="graph-title">
+                                {% if 'hist' in graph_name %}
+                                <i class="fas fa-chart-bar me-2"></i>Distribution
+                                {% elif 'hourly' in graph_name %}
+                                <i class="fas fa-clock me-2"></i>Variation Horaire
+                                {% elif 'weekly' in graph_name %}
+                                <i class="fas fa-calendar-week me-2"></i>Variation Hebdomadaire
+                                {% elif 'speed' in graph_name %}
+                                <i class="fas fa-tachometer-alt me-2"></i>Relation Vitesse-Trafic
+                                {% elif 'timeseries' in graph_name %}
+                                <i class="fas fa-chart-line me-2"></i>Série Temporelle
+                                {% elif 'temp' in graph_name %}
+                                <i class="fas fa-thermometer me-2"></i>Impact Température
+                                {% elif 'heatmap' in graph_name %}
+                                <i class="fas fa-th me-2"></i>Heatmap
+                                {% elif 'correlation' in graph_name %}
+                                <i class="fas fa-project-diagram me-2"></i>Corrélations
+                                {% elif 'snow' in graph_name %}
+                                <i class="fas fa-snowflake me-2"></i>Impact Neige
+                                {% elif 'rain' in graph_name %}
+                                <i class="fas fa-cloud-rain me-2"></i>Impact Pluie
+                                {% else %}
+                                <i class="fas fa-chart-line me-2"></i>Visualisation
+                                {% endif %}
+                            </div>
+                            <div id="{{ graph_name }}" class="prediction-plot"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Légende des couleurs -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fasfa-info-circle me-2"></i>Légende des Couleurs et Symboles
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <div class="traffic-status traffic-fluide me-2" style="width: 20px; height: 20px;"></div>
+                                            <span>Trafic Fluide (< 1000 véh/h)</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <div class="traffic-status traffic-modere me-2" style="width: 20px; height: 20px;"></div>
+                                            <span>Trafic Modéré (1000-2000)</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <div class="traffic-status traffic-dense me-2" style="width: 20px; height: 20px;"></div>
+                                            <span>Trafic Dense (2000-3000)</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <div class="traffic-status traffic-sature me-2" style="width: 20px; height: 20px;"></div>
+                                            <span>Trafic Saturé (> 3000)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Onglet Simulation 24h -->
+            <div class="tab-pane fade" id="simulation" role="tabpanel">
+                {% if has_simulation %}
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <h5><i class="fas fa-crystal-ball me-2"></i>🔮 Simulation des 24 Prochaines Heures</h5>
+                            <p>Prédictions du trafic et de la vitesse pour les 24 prochaines heures basées sur le modèle multi-sorties (CNN-BiLSTM).</p>
+                            <div class="mt-3">
+                                <a href="/download_simulation" class="btn simulation-btn me-3">
+                                    <i class="fas fa-download me-2"></i>📥 Télécharger la Simulation (CSV)
+                                </a>
+                                <button class="btn btn-outline-primary" onclick="refreshSimulation()">
+                                    <i class="fas fa-sync-alt me-2"></i>🔄 Actualiser la Simulation
+                                </button>
+                                <button class="btn btn-outline-success ms-2" onclick="exportSimulationToPDF()">
+                                    <i class="fas fa-file-pdf me-2"></i>📄 Exporter en PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Graphiques de Simulation -->
+                <div class="row mb-4">
+                    {% if simulation_graphs.combined_prediction %}
+                    <div class="col-md-12 mb-4">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <i class="fas fa-chart-bar me-2"></i>📊 Prédictions Trafic & Vitesse sur 24h
+                            </div>
+                            <div class="card-body">
+                                <img src="data:image/png;base64,{{ simulation_graphs.combined_prediction }}" class="img-fluid" alt="Prédictions combinées">
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="col-md-6">
+                        {% if simulation_graphs.traffic_status %}
+                        <div class="card h-100">
+                            <div class="card-header bg-success text-white">
+                                <i class="fas fa-traffic-light me-2"></i>🚦 État du Trafic par Heure
+                            </div>
+                            <div class="card-body">
+                                <img src="data:image/png;base64,{{ simulation_graphs.traffic_status }}" class="img-fluid" alt="État du trafic">
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-6">
+                        {% if simulation_graphs.traffic_pie %}
+                        <div class="card h-100">
+                            <div class="card-header bg-warning text-white">
+                                <i class="fas fa-chart-pie me-2"></i>📈 Répartition des États de Trafic
+                            </div>
+                            <div class="card-body">
+                                <img src="data:image/png;base64,{{ simulation_graphs.traffic_pie }}" class="img-fluid" alt="Répartition trafic">
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Tableau des Prédictions de Simulation -->
+                {% if simulation_table_data %}
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <i class="fas fa-table me-2"></i>📋 Détail des Prédictions par Heure
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th><i class="fas fa-calendar-alt me-1"></i> Date/Heure</th>
+                                                <th><i class="fas fa-clock me-1"></i> Heure</th>
+                                                <th><i class="fas fa-calendar-day me-1"></i> Jour</th>
+                                                <th><i class="fas fa-car me-1"></i> Trafic Prédit</th>
+                                                <th><i class="fas fa-traffic-light me-1"></i> État Trafic</th>
+                                                <th><i class="fas fa-tachometer-alt me-1"></i> Vitesse Prédite</th>
+                                                <th><i class="fas fa-road me-1"></i> État Vitesse</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for row in simulation_table_data %}
+                                            <tr>
+                                                <td>{{ row.date_time }}</td>
+                                                <td>
+                                                    <span class="hour-badge">{{ "%02d"|format(row.hour) }}:00</span>
+                                                </td>
+                                                <td>{{ row.day_name }}</td>
+                                                <td><strong class="text-primary">{{ row.traffic_predicted|int }}</strong> véh/h</td>
+                                                <td>
+                                                    {% if 'Fluide' in row.traffic_category %}
+                                                    <span class="traffic-status traffic-fluide">
+                                                        <i class="fas fa-check-circle me-1"></i>{{ row.traffic_category }}
+                                                    </span>
+                                                    {% elif 'Modéré' in row.traffic_category %}
+                                                    <span class="traffic-status traffic-modere">
+                                                        <i class="fas fa-exclamation-circle me-1"></i>{{ row.traffic_category }}
+                                                    </span>
+                                                    {% elif 'Dense' in row.traffic_category %}
+                                                    <span class="traffic-status traffic-dense">
+                                                        <i class="fas fa-exclamation-triangle me-1"></i>{{ row.traffic_category }}
+                                                    </span>
+                                                    {% else %}
+                                                    <span class="traffic-status traffic-sature">
+                                                        <i class="fas fa-times-circle me-1"></i>{{ row.traffic_category }}
+                                                    </span>
+                                                    {% endif %}
+                                                </td>
+                                                <td><strong class="text-info">{{ row.speed_predicted|round(1) }}</strong> km/h</td>
+                                                <td>
+                                                    {% if 'Rapide' in row.speed_category %}
+                                                    <span class="traffic-status speed-rapide">
+                                                        <i class="fas fa-bolt me-1"></i>{{ row.speed_category }}
+                                                    </span>
+                                                    {% elif 'Normale' in row.speed_category %}
+                                                    <span class="traffic-status speed-normale">
+                                                        <i class="fas fa-check me-1"></i>{{ row.speed_category }}
+                                                    </span>
+                                                    {% elif 'Lente' in row.speed_category %}
+                                                    <span class="traffic-status speed-lente">
+                                                        <i class="fas fa-tachometer-alt me-1"></i>{{ row.speed_category }}
+                                                    </span>
+                                                    {% else %}
+                                                    <span class="traffic-status speed-tres-lente">
+                                                        <i class="fas fa-car-crash me-1"></i>{{ row.speed_category }}
+                                                    </span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Résumé de la Simulation -->
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-success text-white">
+                                <i class="fas fa-chart-bar me-2"></i>📊 Résumé de la Simulation
+                            </div>
+                            <div class="card-body">
+                                <div class="row text-center">
+                                    <div class="col-md-6 mb-3">
+                                        <div class="metric-panel bg-fluide">
+                                            {% set fluide_count = namespace(value=0) %}
+                                            {% for row in simulation_table_data %}
+                                                {% if 'Fluide' in row.traffic_category %}
+                                                    {% set fluide_count.value = fluide_count.value + 1 %}
+                                                {% endif %}
+                                            {% endfor %}
+                                            <div class="metric-value">{{ fluide_count.value }}</div>
+                                            <div class="metric-label">
+                                                <i class="fas fa-check-circle me-1"></i>Heures fluides
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <div class="metric-panel bg-modere">
+                                            {% set modere_count = namespace(value=0) %}
+                                            {% for row in simulation_table_data %}
+                                                {% if 'Modéré' in row.traffic_category %}
+                                                    {% set modere_count.value = modere_count.value + 1 %}
+                                                {% endif %}
+                                            {% endfor %}
+                                            <div class="metric-value">{{ modere_count.value }}</div>
+                                            <div class="metric-label">
+                                                <i class="fas fa-exclamation-circle me-1"></i>Heures modérées
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <div class="metric-panel bg-dense">
+                                            {% set dense_count = namespace(value=0) %}
+                                            {% for row in simulation_table_data %}
+                                                {% if 'Dense' in row.traffic_category %}
+                                                    {% set dense_count.value = dense_count.value + 1 %}
+                                                {% endif %}
+                                            {% endfor %}
+                                            <div class="metric-value">{{ dense_count.value }}</div>
+                                            <div class="metric-label">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>Heures denses
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <div class="metric-panel bg-sature">
+                                            {% set sature_count = namespace(value=0) %}
+                                            {% for row in simulation_table_data %}
+                                                {% if 'Saturé' in row.traffic_category %}
+                                                    {% set sature_count.value = sature_count.value + 1 %}
+                                                {% endif %}
+                                            {% endfor %}
+                                            <div class="metric-value">{{ sature_count.value }}</div>
+                                            <div class="metric-label">
+                                                <i class="fas fa-times-circle me-1"></i>Heures saturées
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4">
+                                    {% set total_traffic = namespace(value=0) %}
+                                    {% for row in simulation_table_data %}
+                                        {% set total_traffic.value = total_traffic.value + row.traffic_predicted %}
+                                    {% endfor %}
+                                    <div class="alert alert-secondary">
+                                        <h6><i class="fas fa-calculator me-2"></i>Moyennes sur 24h :</h6>
+                                        <div class="row mt-2">
+                                            <div class="col-md-6">
+                                                <strong>Trafic moyen :</strong> {{ "%.0f"|format(total_traffic.value / simulation_table_data|length) }} véh/h
+                                            </div>
+                                            <div class="col-md-6">
+                                                <strong>Vitesse moyenne :</strong>
+                                                {% set total_speed = namespace(value=0) %}
+                                                {% for row in simulation_table_data %}
+                                                    {% set total_speed.value = total_speed.value + row.speed_predicted %}
+                                                {% endfor %}
+                                                {{ "%.1f"|format(total_speed.value / simulation_table_data|length) }} km/h
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-primary text-white">
+                                <i class="fas fa-clock me-2"></i>⏰ Meilleurs Moments pour Circuler
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-success">
+                                    <h6><i class="fas fa-thumbs-up me-2"></i>✅ Heures les plus fluides :</h6>
+                                    <ul class="mb-0">
+                                        {% for row in simulation_table_data if 'Fluide' in row.traffic_category %}
+                                        <li>
+                                            <strong>{{ "%02d"|format(row.hour) }}:00</strong> -
+                                            {{ row.traffic_predicted|int }} véh/h -
+                                            {{ row.speed_predicted|round(1) }} km/h
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+
+                                <div class="alert alert-danger mt-3">
+                                    <h6><i class="fas fa-thumbs-down me-2"></i>⚠️ Heures à éviter :</h6>
+                                    <ul class="mb-0">
+                                        {% for row in simulation_table_data if 'Saturé' in row.traffic_category %}
+                                        <li>
+                                            <strong>{{ "%02d"|format(row.hour) }}:00</strong> -
+                                            {{ row.traffic_predicted|int }} véh/h -
+                                            {{ row.speed_predicted|round(1) }} km/h
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+
+                                <div class="alert alert-warning mt-3">
+                                    <h6><i class="fas fa-lightbulb me-2"></i>💡 Recommandations :</h6>
+                                    <ul class="mb-0">
+                                        <li>Privilégiez les déplacements entre {{ simulation_table_data[0].hour if simulation_table_data else '00' }}:00 et {{ simulation_table_data[5].hour if simulation_table_data|length > 5 else '05' }}:00</li>
+                                        <li>Évitez les heures de pointe de {{ simulation_table_data[8].hour if simulation_table_data|length > 8 else '08' }}:00 à {{ simulation_table_data[10].hour if simulation_table_data|length > 10 else '10' }}:00</li>
+                                        <li>La vitesse moyenne prédite est de {{ "%.1f"|format(total_speed.value / simulation_table_data|length) }} km/h</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% else %}
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-warning">
+                            <h5><i class="fas fa-exclamation-triangle me-2"></i>⚠️ Simulation non disponible</h5>
+                            <p>Les prédictions de simulation n'ont pas pu être générées.</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% else %}
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-warning">
+                            <h5><i class="fas fa-exclamation-triangle me-2"></i>⚠️ Simulateur non entraîné</h5>
+                            <p>Le modèle de simulation n'a pas pu être entraîné. Cela peut être dû à un manque de données ou à une erreur technique.</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Onglet Prédictions IA -->
+            <div class="tab-pane fade" id="predictions" role="tabpanel">
+                {% if has_predictions %}
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="alert alert-success">
+                            <h5><i class="fas fa-check-circle me-2"></i>✅ Modèle CNN-LSTM Entraîné avec Succès</h5>
+                            <p>Le modèle a été entraîné sur {{ stats.total_records }} enregistrements avec une architecture CNN-LSTM avancée.</p>
+                            <div class="mt-2">
+                                <a href="/download_predictions" class="btn download-btn me-3">
+                                    <i class="fas fa-download me-2"></i>📥 Télécharger les Prédictions (CSV)
+                                </a>
+                                <span class="info-badge">
+                                    <i class="fas fa-brain me-1"></i>Modèle: CNN-LSTM
+                                </span>
+                                <span class="info-badge ms-2">
+                                    <i class="fas fa-layer-group me-1"></i>Architecture: 7 couches
+                                </span>
+                                <span class="info-badge ms-2">
+                                    <i class="fas fa-bolt me-1"></i>Performance: {{ "%.2f"|format(prediction_metrics.test_rmse) if prediction_metrics else 'N/A' }} RMSE
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Métriques de Prédiction -->
+                {% if prediction_metrics %}
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="prediction-metrics">
+                            <h6><i class="fas fa-chart-line me-2"></i>RMSE (Train)</h6>
+                            <h4>{{ "%.2f"|format(prediction_metrics.train_rmse) }}</h4>
+                            <small>Root Mean Square Error</small>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="prediction-metrics">
+                            <h6><i class="fas fa-chart-line me-2"></i>MAE (Train)</h6>
+                            <h4>{{ "%.2f"|format(prediction_metrics.train_mae) }}</h4>
+                            <small>Mean Absolute Error</small>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="prediction-metrics">
+                            <h6><i class="fas fa-chart-line me-2"></i>RMSE (Test)</h6>
+                            <h4>{{ "%.2f"|format(prediction_metrics.test_rmse) }}</h4>
+                            <small>Root Mean Square Error</small>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="prediction-metrics">
+                            <h6><i class="fas fa-chart-line me-2"></i>MAE (Test)</h6>
+                            <h4>{{ "%.2f"|format(prediction_metrics.test_mae) }}</h4>
+                            <small>Mean Absolute Error</small>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Graphiques de Prédiction -->
+                <div class="row">
+                    {% if prediction_graphs.learning_curve %}
+                    <div class="col-md-6 mb-4">
+                        <div class="graph-container">
+                            <div class="graph-title">
+                                <i class="fas fa-graduation-cap me-2"></i>Courbe d'Apprentissage
+                            </div>
+                            <img src="data:image/png;base64,{{ prediction_graphs.learning_curve }}" class="img-fluid" alt="Courbe d'Apprentissage">
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if prediction_graphs.predictions_comparison %}
+                    <div class="col-md-6 mb-4">
+                        <div class="graph-container">
+                            <div class="graph-title">
+                                <i class="fas fa-exchange-alt me-2"></i>Comparaison Prédictions vs Réelles
+                            </div>
+                            <img src="data:image/png;base64,{{ prediction_graphs.predictions_comparison }}" class="img-fluid" alt="Comparaison Prédictions">
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if prediction_graphs.error_distribution %}
+                    <div class="col-md-6 mb-4">
+                        <div class="graph-container">
+                            <div class="graph-title">
+                                <i class="fas fa-chart-bar me-2"></i>Distribution des Erreurs
+                            </div>
+                            <img src="data:image/png;base64,{{ prediction_graphs.error_distribution }}" class="img-fluid" alt="Distribution des Erreurs">
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if prediction_graphs.performance_metrics %}
+                    <div class="col-md-6 mb-4">
+                        <div class="graph-container">
+                            <div class="graph-title">
+                                <i class="fas fa-tachometer-alt me-2"></i>Métriques de Performance
+                            </div>
+                            <img src="data:image/png;base64,{{ prediction_graphs.performance_metrics }}" class="img-fluid" alt="Métriques de Performance">
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Tableau des Prédictions -->
+                {% if prediction_table_data %}
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <i class="fas fa-table me-2"></i>📋 Dernières Prédictions
+                            </div>
+                            <div class="card-body">
+                                <div class="data-table">
+                                    <table class="table table-striped table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th><i class="fas fa-calendar-alt me-1"></i> Date/Heure</th>
+                                                <th><i class="fas fa-car me-1"></i> Valeur Réelle</th>
+                                                <th><i class="fas fa-brain me-1"></i> Prédiction</th>
+                                                <th><i class="fas fa-balance-scale me-1"></i> Erreur</th>
+                                                <th><i class="fas fa-percentage me-1"></i> Erreur %</th>
+                                                <th><i class="fas fa-database me-1"></i> Dataset</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for row in prediction_table_data %}
+                                            <tr>
+                                                <td>{{ row.date_time }}</td>
+                                                <td>{{ row.actual }}</td>
+                                                <td>{{ row.predicted }}</td>
+                                                <td class="{{ 'text-danger' if row.error > 0 else 'text-success' }}">
+                                                    <i class="fas fa-arrow-{{ 'up' if row.error > 0 else 'down' }} me-1"></i>{{ row.error }}
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-{{ 'danger' if row.error_percent|float > 10 else 'warning' if row.error_percent|float > 5 else 'success' }}">
+                                                        {{ row.error_percent }}%
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-{{ 'primary' if row.dataset == 'train' else 'warning' }}">
+                                                        <i class="fas fa-{{ 'graduation-cap' if row.dataset == 'train' else 'flask' }} me-1"></i>
+                                                        {{ row.dataset }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Analyse des Performances -->
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <i class="fas fa-chart-line me-2"></i>📈 Analyse des Performances du Modèle
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6><i class="fas fa-check-circle text-success me-2"></i>Points Forts :</h6>
+                                        <ul>
+                                            <li>Précision élevée sur les données d'entraînement</li>
+                                            <li>Capacité à capturer les patterns saisonniers</li>
+                                            <li>Faible erreur moyenne absolue (MAE)</li>
+                                            <li>Stabilité de l'entraînement (pas de sur-apprentissage)</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6><i class="fas fa-exclamation-triangle text-warning me-2"></i>Améliorations Possibles :</h6>
+                                        <ul>
+                                            <li>Augmenter la taille du dataset</li>
+                                            <li>Ajouter des features météorologiques</li>
+                                            <li>Optimiser les hyperparamètres</li>
+                                            <li>Implémenter des modèles d'ensemble</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% else %}
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-warning">
+                            <h5><i class="fas fa-exclamation-triangle me-2"></i>⚠️ Modèle non entraîné</h5>
+                            <p>Le modèle de prédiction n'a pas pu être entraîné. Cela peut être dû à un manque de données ou à une erreur technique.</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Onglet Données Brutes -->
+            <div class="tab-pane fade" id="data" role="tabpanel">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <i class="fas fa-table me-2"></i>📋 Aperçu des Données ({{ total_columns }} colonnes)
+                                {% if hidden_columns %}
+                                <span class="info-badge ms-2">
+                                    <i class="fas fa-eye-slash me-1"></i>+{{ hidden_columns|length }} colonnes masquées
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div class="card-body">
+                                <div class="data-table">
+                                    <table class="table table-striped table-hover">
+                                        <thead>
+                                            <tr>
+                                                {% for col in table_columns %}
+                                                <th>
+                                                    <i class="fas fa-columns me-1"></i>{{ col }}
+                                                </th>
+                                                {% endfor %}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for row in table_data %}
+                                            <tr>
+                                                {% for col in table_columns %}
+                                                <td>
+                                                    {% if col == 'traffic_volume' %}
+                                                    <span class="badge bg-info">{{ row[col] }}</span>
+                                                    {% elif col == 'speed' %}
+                                                    <span class="badge bg-success">{{ row[col] }}</span>
+                                                    {% elif col == 'temp' %}
+                                                    <span class="badge bg-warning">{{ row[col] }}</span>
+                                                    {% elif col == 'date_time' %}
+                                                    <span class="badge bg-secondary">{{ row[col] }}</span>
+                                                    {% else %}
+                                                    {{ row[col] }}
+                                                    {% endif %}
+                                                </td>
+                                                {% endfor %}
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {% if hidden_columns %}
+                                <div class="alert alert-info mt-3">
+                                    <h6><i class="fas fa-info-circle me-2"></i>Colonnes masquées :</h6>
+                                    <div class="row">
+                                        {% for col in hidden_columns %}
+                                        <div class="col-md-3 mb-2">
+                                            <span class="badge bg-secondary">{{ col }}</span>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Informations sur les Données -->
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-info text-white">
+                                <i class="fas fa-info-circle me-2"></i>ℹ️ Informations sur le Dataset
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item">
+                                        <i class="fas fa-database me-2 text-primary"></i>
+                                        <strong>Source:</strong> {{ stats.source }}
+                                    </li>
+                                    <li class="list-group-item">
+                                        <i class="fas fa-chart-bar me-2 text-success"></i>
+                                        <strong>Total d'enregistrements:</strong> {{ stats.total_records }}
+                                    </li>
+                                    <li class="list-group-item">
+                                        <i class="fas fa-calendar-alt me-2 text-warning"></i>
+                                        <strong>Période:</strong> {{ stats.date_range }}
+                                    </li>
+                                    <li class="list-group-item">
+                                        <i class="fas fa-clock me-2 text-info"></i>
+                                        <strong>Durée:</strong> {{ stats.period_days }}
+                                    </li>
+                                    <li class="list-group-item">
+                                        <i class="fas fa-chart-line me-2 text-danger"></i>
+                                        <strong>Points de données par jour:</strong> {{ stats.data_points_per_day }}
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-success text-white">
+                                <i class="fas fa-chart-pie me-2"></i>📈 Résumé Statistique
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item">
+                                        <i class="fas fa-car me-2 text-primary"></i>
+                                        <strong>Trafic moyen:</strong> {{ stats.avg_traffic }} véhicules/h
+                                    </li>
+                                    {% if stats.avg_speed %}
+                                    <li class="list-group-item">
+                                        <i class="fas fa-tachometer-alt me-2 text-success"></i>
+                                        <strong>Vitesse moyenne:</strong> {{ stats.avg_speed }} km/h
+                                    </li>
+                                    {% endif %}
+                                    {% if stats.avg_temp %}
+                                    <li class="list-group-item">
+                                        <i class="fas fa-thermometer-half me-2 text-danger"></i>
+                                        <strong>Température moyenne:</strong> {{ stats.avg_temp }}
+                                    </li>
+                                    {% endif %}
+                                    {% if kpis.peak_hour %}
+                                    <li class="list-group-item">
+                                        <i class="fas fa-clock me-2 text-warning"></i>
+                                        <strong>Heure de pointe:</strong> {{ kpis.peak_hour }}
+                                    </li>
+                                    {% endif %}
+                                    {% if kpis.weekend_ratio %}
+                                    <li class="list-group-item">
+                                        <i class="fas fa-percentage me-2 text-info"></i>
+                                        <strong>Ratio week-end:</strong> {{ kpis.weekend_ratio }}
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <footer>
+                    <p class="mb-1">
+                        <i class="fas fa-traffic-light me-2"></i>
+                        <strong>Dashboard Trafic Routier</strong> - Analyse, Prédiction et Simulation avec IA
+                    </p>
+                    <p class="mb-1">
+                        <i class="fas fa-cogs me-2"></i>
+                        Technologies: Flask, TensorFlow, Scikit-learn, Plotly, Bootstrap 5
+                    </p>
+                    <p class="mb-0">
+                        <small>
+                            <i class="fas fa-calendar-alt me-1"></i>Généré le {{ now }} |
+                            <a href="/" class="text-warning ms-2">
+                                <i class="fas fa-sync-alt me-1"></i>Rafraîchir
+                            </a>
+                        </small>
+                    </p>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feu tricolore décoratif -->
+    <div class="traffic-light">
+        <div class="light red"></div>
+        <div class="light yellow"></div>
+        <div class="light green"></div>
+    </div>
+
+    <!-- Scripts JavaScript -->
+    <script>
+        // Initialiser les graphiques Plotly
+        document.addEventListener('DOMContentLoaded', function() {
+            {% for graph_name, graph_json in eda_graphs.items() %}
+            try {
+                var graphData = JSON.parse('{{ graph_json|safe }}');
+                Plotly.newPlot('{{ graph_name }}', graphData.data || graphData, graphData.layout || {});
+            } catch(e) {
+                console.error('Erreur avec le graphique {{ graph_name }}:', e);
+                document.getElementById('{{ graph_name }}').innerHTML =
+                    '<div class="alert alert-warning p-3">Graphique non disponible</div>';
+            }
+            {% endfor %}
+
+            // Activer les tooltips Bootstrap
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // Animation des compteurs
+            animateCounters();
+
+            // Initialiser les jauges de vitesse
+            initSpeedometers();
+        });
+
+        // Fonction pour rafraîchir la simulation
+        function refreshSimulation() {
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Actualisation...';
+            btn.disabled = true;
+
+            fetch('/api/simulation')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('Simulation rafraîchie avec succès !', 'success');
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        showNotification('Erreur: ' + data.error, 'error');
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    showNotification('Erreur de connexion au serveur', 'error');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                });
+        }
+
+        // Fonction pour exporter en PDF (simulation)
+        function exportSimulationToPDF() {
+            showNotification('Fonctionnalité PDF en développement...', 'info');
+        }
+
+        // Animation des compteurs
+        function animateCounters() {
+            const counters = document.querySelectorAll('.metric-value');
+            counters.forEach(counter => {
+                const target = parseInt(counter.innerText.replace(/,/g, ''));
+                if (!isNaN(target)) {
+                    animateCounter(counter, 0, target, 2000);
+                }
+            });
+        }
+
+        function animateCounter(element, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const value = Math.floor(progress * (end - start) + start);
+                element.innerText = value.toLocaleString();
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        // Initialiser les jauges de vitesse
+        function initSpeedometers() {
+            const speedometers = document.querySelectorAll('.speedometer');
+            speedometers.forEach(sm => {
+                const speed = parseFloat(sm.dataset.speed) || 0;
+                createSpeedometer(sm, speed);
+            });
+        }
+
+        function createSpeedometer(container, speed) {
+            // Créer une jauge simple avec CSS
+            const maxSpeed = 120;
+            const percentage = Math.min((speed / maxSpeed) * 100, 100);
+
+            container.innerHTML = `
+                <div class="speedometer-gauge">
+                    <div class="gauge-background"></div>
+                    <div class="gauge-fill" style="height: ${percentage}%"></div>
+                    <div class="gauge-value">${speed.toFixed(0)}</div>
+                </div>
+            `;
+        }
+
+        // Notification système
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} notification-alert`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
+                ${message}
+            `;
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.classList.add('fade-out');
+                setTimeout(() => notification.remove(), 500);
+            }, 3000);
+        }
+
+        // Gestion des onglets - sauvegarde de l'onglet actif
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabs = document.querySelectorAll('#dashboardTabs button[data-bs-toggle="tab"]');
+            tabs.forEach(tab => {
+                tab.addEventListener('shown.bs.tab', function (event) {
+                    localStorage.setItem('activeTab', event.target.id);
+                });
+            });
+
+            // Restaurer l'onglet actif
+            const activeTab = localStorage.getItem('activeTab');
+            if (activeTab) {
+                const tabElement = document.getElementById(activeTab);
+                if (tabElement) {
+                    new bootstrap.Tab(tabElement).show();
+                }
+            }
+        });
+    </script>
+
+    <!-- Styles supplémentaires pour les notifications -->
+    <style>
+        .notification-alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+            animation: slideInRight 0.3s ease-out;
+        }
+
+        .fade-out {
+            animation: fadeOut 0.5s ease-out forwards;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; transform: translateY(-20px); }
+        }
+
+        .info-panel {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--traffic-blue);
+        }
+
+        .info-panel.success {
+            border-left-color: var(--traffic-green);
+        }
+
+        .info-panel.warning {
+            border-left-color: var(--traffic-yellow);
+        }
+
+        .metric-panel {
+            padding: 15px;
+            border-radius: var(--border-radius-md);
+            color: white;
+            text-align: center;
+        }
+
+        .bg-fluide { background: linear-gradient(135deg, var(--traffic-green) 0%, #27ae60 100%); }
+        .bg-modere { background: linear-gradient(135deg, var(--traffic-yellow) 0%, #f39c12 100%); color: var(--asphalt-dark); }
+        .bg-dense { background: linear-gradient(135deg, var(--traffic-orange) 0%, #e67e22 100%); }
+        .bg-sature { background: linear-gradient(135deg, var(--traffic-red) 0%, #c0392b 100%); }
+
+        .speedometer-gauge {
+            width: 60px;
+            height: 60px;
+            background: var(--asphalt-dark);
+            border-radius: 50%;
+            position: relative;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+
+        .gauge-fill {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: linear-gradient(to top, var(--traffic-green), var(--traffic-yellow), var(--traffic-red));
+            transition: height 1s ease;
+        }
+
+        .gauge-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            font-size: 0.9rem;
+            z-index: 2;
+        }
+
+        .kpi-trend, .weather-indicator, .peak-indicator {
+            font-size: 0.8rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            display: inline-block;
+            margin-top: 5px;
+        }
+    </style>
+</body>
+</html>

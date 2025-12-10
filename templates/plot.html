@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Exploration</title>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<h1>📊 Exploration des données</h1>
+
+<form method="post">
+    <label>Jours à afficher:</label><br>
+    {% for k,v in days_map.items() %}
+        <input type="checkbox" name="days" value="{{v}}" {% if v in selected_days %}checked{% endif %}> {{v}}
+    {% endfor %}
+    <button type="submit">Filtrer</button>
+</form>
+
+<div id="hist"></div>
+<div id="violin"></div>
+
+<script>
+    var hist = {{ figs['hist'] | safe }};
+    Plotly.newPlot('hist', hist.data, hist.layout);
+
+    var violin = {{ figs['violin'] | safe }};
+    Plotly.newPlot('violin', violin.data, violin.layout);
+</script>
+</body>
+</html>
